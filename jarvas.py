@@ -19,7 +19,7 @@ def formatar_dinheiro(valor_texto):
     try:
         return float(str(valor_texto).replace(',', '.'))
     except ValueError:
-        print("Valor inválido! Usando R$ 0.00")
+        print("Valor inválido! Use 0.00")
         return 0.0
 
 executando = True

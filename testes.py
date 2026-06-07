@@ -1,4 +1,3 @@
-import numpy as np
 from database import get_conexao
 
 conn = get_conexao()
@@ -8,5 +7,3 @@ resultado = cursor.fetchall()
 for i in resultado:
     print(f'Status: {i[0]} | Total: R$ {i[1]:.2f}')
 conn.close()
-
-'SELECT '
