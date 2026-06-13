@@ -1,20 +1,22 @@
-import sqlite3
+import psycopg2
+import os
+
 from datetime import datetime
 
 agora = datetime.now()
 
-import os
-DB_PATH = os.environ.get('JARVAS_DB', 'jarvas.db')
+DB_PASSWORD = os.environ.get('DB_PASSWORD','')
 
 def get_conexao():
-    return sqlite3.connect(DB_PATH)
+    return psycopg2.connect(host='localhost',database='jarvas_db',user='postgres',password=DB_PASSWORD,port='5432'
+)
 
 def criar_tabelas():
     conn = get_conexao()
     cursor = conn.cursor()
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS boleto_apartamento(
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            id SERIAL PRIMARY KEY,
             recebedor TEXT,
             valor REAL,
             vencimento TEXT,
@@ -23,15 +25,16 @@ def criar_tabelas():
     """)
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS minhas_despesas(
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            id SERIAL PRIMARY KEY,
             despesa TEXT,
             valor REAL,
-            status TEXT
+            status TEXT,
+            vencimento TEXT          
         );
     """)
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS lista_desejos_ap(
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            id SERIAL PRIMARY KEY,
             item TEXT,
             valor REAL,
             marca TEXT
@@ -44,10 +47,10 @@ def resumo_geral():
     conn = get_conexao()
     cursor = conn.cursor()
 
-    cursor.execute('SELECT SUM(valor) FROM boleto_apartamento WHERE status = "Pago"')
+    cursor.execute("SELECT SUM(valor) FROM boleto_apartamento WHERE status = 'Pago'")
     pago = cursor.fetchone()[0] or 0.0
 
-    cursor.execute('SELECT SUM(valor) FROM boleto_apartamento WHERE status = "Pendente"')
+    cursor.execute("SELECT SUM(valor) FROM boleto_apartamento WHERE status = 'Pendente'")
     pendente = cursor.fetchone()[0] or 0.0
 
     cursor.execute('SELECT SUM(valor) FROM lista_desejos_ap')
@@ -56,7 +59,7 @@ def resumo_geral():
     cursor.execute("""
         SELECT recebedor, valor, vencimento
         FROM boleto_apartamento
-        WHERE status = "Pendente"
+        WHERE status = 'Pendente'
         ORDER BY vencimento ASC
         LIMIT 1
     """)
@@ -78,7 +81,7 @@ def resumo_geral():
 def pagar_boleto_ap(id_boleto):
     conn = get_conexao()
     cursor = conn.cursor()
-    cursor.execute('UPDATE boleto_apartamento SET status = "Pago" WHERE id = ?', (id_boleto,))
+    cursor.execute("UPDATE boleto_apartamento SET status = 'Pago' WHERE id = %s", (id_boleto,))
     conn.commit()
     conn.close()
     print(f'JARVAS: Boleto ID: {id_boleto} alterado para PAGO com sucesso!')
@@ -117,7 +120,7 @@ def adicionar_sql_boletos_ap(recebedor, valor, vencimento, status):
     conn = get_conexao()
     cursor = conn.cursor()
     cursor.execute(
-        'INSERT INTO boleto_apartamento(recebedor, valor, vencimento, status) VALUES(?,?,?,?)',
+        "INSERT INTO boleto_apartamento(recebedor, valor, vencimento, status) VALUES(%s,%s,%s,%s)",
         (recebedor, valor, resultado, status)
     )
     conn.commit()
@@ -128,18 +131,18 @@ def adicionar_sql_lista_desejos(item, valor, marca):
     conn = get_conexao()
     cursor = conn.cursor()
     cursor.execute(
-        'INSERT INTO lista_desejos_ap(item, valor, marca) VALUES(?,?,?)',
+        'INSERT INTO lista_desejos_ap(item, valor, marca) VALUES(%s,%s,%s)',
         (item, valor, marca)
     )
     conn.commit()
     conn.close()
 
-def adicionar_boleto_despesas(despesa, valor, status):
+def adicionar_boleto_despesas(despesa, valor, status, vencimento):
     conn = get_conexao()
     cursor = conn.cursor()
     cursor.execute(
-        'INSERT INTO minhas_despesas(despesa, valor, status) VALUES(?,?,?)',
-        (despesa, valor, status)
+        'INSERT INTO minhas_despesas(despesa, valor, status, vencimento) VALUES(%s,%s,%s,%s)',
+        (despesa, valor, status,vencimento)
     )
     conn.commit()
     conn.close()
@@ -152,12 +155,12 @@ def ler_boleto_despesas():
     resultado = cursor.fetchall()
     conn.close()
     for i in resultado:
-        print(f'ID: {i[0]} | Despesa: {i[1]} | Valor: {i[2]} | Status: {i[3]}')
+        print(f'ID: {i[0]} | Despesa: {i[1]} | Valor: {i[2]} | Status: {i[3]} | Vencimento: {i[4]}')
 
 def pagar_boleto_despesas(id_boleto):
     conn = get_conexao()
     cursor = conn.cursor()
-    cursor.execute('UPDATE minhas_despesas SET status = "Pago" WHERE id = ?', (id_boleto,))
+    cursor.execute("UPDATE minhas_despesas SET status = 'Pago' WHERE id = %s", (id_boleto,))
     conn.commit()
     conn.close()
 
@@ -172,7 +175,7 @@ def total_boleto_despesas():
 def total_boleto_imovel():
     conn = get_conexao()
     cursor = conn.cursor()
-    cursor.execute('SELECT SUM(valor) FROM boleto_apartamento WHERE status = "Pendente"')
+    cursor.execute("SELECT SUM(valor) FROM boleto_apartamento WHERE status = 'Pendente'")
     total = cursor.fetchone()[0] or 0.0
     conn.close()
     return total

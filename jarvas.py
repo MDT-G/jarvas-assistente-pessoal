@@ -41,7 +41,6 @@ while executando:
             '3- Alterar status do boleto para Pago\n'
             '4- Aumento com avanço de obra\n'
             '5- Lista de desejos\n'
-            '6- Tempo restante pro prazo final\n'
             'Qual?\n '
         )
         if imovel == '1':
@@ -88,7 +87,6 @@ while executando:
                     id_para_remover = input('Qual ID do item que você quer remover? ')
                     retirar_item_lista(id_para_remover)
             executando = voltar_pro_menu()
-
     elif opcoes == '2':
         nome_mes = agora.strftime("%B")
         despesas = input(
@@ -96,7 +94,6 @@ while executando:
             '1- Adicionar boleto\n'
             '2- Visualizar boletos\n'
             '3- Marcar boleto como pago\n'
-            '4- Iniciar outro mês\n'
             ' Qual?\n '
         )
         if despesas == '1':
@@ -104,7 +101,8 @@ while executando:
             valor = input('Qual o valor? ex:189,37\n')
             valor_final = formatar_dinheiro(valor)
             status = 'Pendente'
-            adicionar_boleto_despesas(despesa, valor_final, status)
+            vencimento = input('Qual vencimento do boleto? ex: 03/05/2026\n')
+            adicionar_boleto_despesas(despesa, valor_final, status, vencimento)
             executando = voltar_pro_menu()
 
         elif despesas == '2':
